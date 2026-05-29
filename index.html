@@ -2,11 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Draw</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #fff;
+    overscroll-behavior: none;
+  }
   canvas {
     display: block;
     background: #fff;
@@ -15,8 +21,8 @@
   }
   #eraser {
     position: fixed;
-    bottom: 24px;
-    left: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    left: calc(24px + env(safe-area-inset-left));
     width: 45px;
     height: 45px;
     border-radius: 50%;
@@ -33,6 +39,11 @@
   #eraser:hover { background: #333; }
   #eraser:active { transform: scale(0.92); }
   #eraser svg { width: 21px; height: 21px; }
+  /* Touch devices: bigger thumb-friendly target */
+  @media (pointer: coarse) {
+    #eraser { width: 56px; height: 56px; }
+    #eraser svg { width: 26px; height: 26px; }
+  }
 </style>
 </head>
 <body>
@@ -50,16 +61,21 @@
 
   function resize() {
     // preserve drawing on resize
-    const snap = ctx.getImageData ? canvas.toDataURL() : null;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const snap = canvas.width ? canvas.toDataURL() : null;
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth, h = window.innerHeight;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS px, sharp on retina
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#000';
     if (snap) {
       const img = new Image();
-      img.onload = () => ctx.drawImage(img, 0, 0);
+      img.onload = () => ctx.drawImage(img, 0, 0, w, h);
       img.src = snap;
     }
   }
@@ -98,7 +114,7 @@
   window.addEventListener('touchend', end);
 
   document.getElementById('eraser').addEventListener('click', () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
   });
 </script>
 </body>
